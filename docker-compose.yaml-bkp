@@ -1,0 +1,178 @@
+version: "3" 
+services:
+  mongodb:
+    build:
+      context: mongo 
+    image: pullapantangi/ecomm_mongodb:latest
+    environment:
+        - HR_ENV=production-gcpus
+        - RR2_ENV=/credentials/
+    networks:
+      - robo-shop 
+    logging: &logging
+      driver: "json-file"
+      options:
+        max-size: "25m"
+        max-file: "2"
+    deploy:
+      restart_policy:
+         condition: on-failure
+         delay: 180s
+         max_attempts: 5
+  
+  redis:
+    image: redis:6.2-alpine
+    networks:
+      - robo-shop
+    logging:
+      <<: *logging
+  rabbitmq:
+    image: pullapantangi/ecomm_rmq:latest
+    networks:
+      - robo-shop
+    logging:
+      <<: *logging
+  redis:
+    image: pullapantangi/ecomm_redis:latest
+    networks:
+      - robo-shop
+    logging:
+      <<: *logging
+  catalogue:
+    build:
+      context: catalogue
+    image: pullapantangi/ecomm_catalogue:latest
+    depends_on:
+      - mongodb
+    networks:
+      - robo-shop
+    healthcheck:
+        test: curl --fail -s http://localhost:8080/health || exit 1
+        interval: 45s
+        timeout: 12s
+        retries: 10
+    logging:
+      <<: *logging
+  user:
+    build:
+      context: user
+    image: pullapantangi/ecomm_user:latest
+    depends_on:
+      - mongodb
+      - redis
+    networks:
+      - robo-shop
+    healthcheck:
+      test: curl --fail -s http://localhost:8080/health || exit 1
+      interval: 10s
+      timeout: 10s
+      retries: 3
+    logging:
+      <<: *logging
+  cart:
+    build:
+      context: cart
+    image: pullapantangi/ecomm_cart:latest
+    depends_on:
+      - redis
+    networks:
+      - robo-shop
+    healthcheck:
+      test: curl --fail -s http://localhost:8080/health || exit 1
+      interval: 10s
+      timeout: 10s
+      retries: 3
+    logging:
+      <<: *logging
+  mysql:
+    build:
+      context: mysql
+    image: pullapantangi/ecomm_mysql:latest
+    cap_add:
+      - NET_ADMIN
+    networks:
+      - robo-shop
+    logging:
+      <<: *logging
+  shipping:
+    build:
+      context: shipping
+    image: pullapantangi/ecomm_ship:latest
+    depends_on:
+      - mysql
+    networks:
+      - robo-shop
+    healthcheck:
+      test: curl --fail -s http://localhost:8080/health || exit 1
+      interval: 10s
+      timeout: 10s
+      retries: 3
+    logging:
+      <<: *logging
+  ratings:
+    build:
+      context: ratings
+    image: pullapantangi/ratings:latest
+    environment:
+      APP_ENV: prod
+    networks:
+      - robo-shop
+    depends_on:
+      - mysql
+    healthcheck:
+      test: curl --fail -s http://localhost/_health || exit 1
+      interval: 10s
+      timeout: 10s
+      retries: 3
+    logging:
+      <<: *logging
+  payment:
+    build:
+      context: payment
+    image: pullapantangi/ecomm_payment:latest
+    depends_on:
+      - rabbitmq
+    networks:
+      - robo-shop
+    # Uncomment to change payment gateway
+    #environment:
+      #PAYMENT_GATEWAY: "https://www.worldpay.com"
+    logging:
+      <<: *logging
+  dispatch:
+    build:
+      context: dispatch
+    image: pullapantangi/ecomm_dispatch:latest
+    depends_on:
+      - rabbitmq
+    networks:
+      - robo-shop
+    logging:
+      <<: *logging
+  web:
+    build:
+      context: web
+    image: pullapantangi/ecomm_web:latest
+    depends_on:
+      - catalogue
+      - user
+      - shipping
+      - payment
+    ports:
+      - "8080:8080"
+    networks:
+      - robo-shop
+    healthcheck:
+      test: curl --fail -s http://localhost:8080 || exit 1
+      interval: 10s
+      timeout: 10s
+      retries: 3
+    # Uncomment to enable Instana EUM
+    # environment:
+      # INSTANA_EUM_KEY: <your eum key>
+      # INSTANA_EUM_REPORTING_URL: <your reporting url>
+    logging:
+      <<: *logging
+
+networks:
+  robo-shop: 
