@@ -2,7 +2,7 @@ version: "3"
 services:
   mongodb:
     build:
-      context: mongo 
+      context: mongodb 
     image: pullapantangi/ecomm_mongodb:latest
     environment:
         - HR_ENV=production-gcpus
@@ -15,29 +15,39 @@ services:
         max-size: "25m"
         max-file: "2"
     deploy:
-      restart_policy:
-         condition: on-failure
-         delay: 180s
-         max_attempts: 5
-  
+      mode: global
+      placement:
+        constraints: [node.labels.mode == worker ]
   redis:
     image: redis:6.2-alpine
     networks:
       - robo-shop
     logging:
       <<: *logging
+    deploy:
+      mode: global
+      placement:
+        constraints: [node.labels.mode == worker ]
   rabbitmq:
     image: pullapantangi/ecomm_rmq:latest
     networks:
       - robo-shop
     logging:
       <<: *logging
+    deploy:
+      mode: global
+      placement:
+        constraints: [node.labels.mode == worker ]
   redis:
     image: pullapantangi/ecomm_redis:latest
     networks:
       - robo-shop
     logging:
       <<: *logging
+    deploy:
+      mode: global
+      placement:
+        constraints: [node.labels.mode == worker ]
   catalogue:
     build:
       context: catalogue
@@ -53,6 +63,10 @@ services:
         retries: 10
     logging:
       <<: *logging
+    deploy:
+      mode: global
+      placement:
+        constraints: [node.labels.mode == worker ]
   user:
     build:
       context: user
@@ -69,6 +83,10 @@ services:
       retries: 3
     logging:
       <<: *logging
+    deploy:
+      mode: global
+      placement:
+        constraints: [node.labels.mode == worker ]
   cart:
     build:
       context: cart
@@ -84,6 +102,10 @@ services:
       retries: 3
     logging:
       <<: *logging
+    deploy:
+      mode: global
+      placement:
+        constraints: [node.labels.mode == worker ]
   mysql:
     build:
       context: mysql
@@ -94,6 +116,10 @@ services:
       - robo-shop
     logging:
       <<: *logging
+    deploy:
+      mode: global
+      placement:
+        constraints: [node.labels.mode == worker ]
   shipping:
     build:
       context: shipping
@@ -109,6 +135,10 @@ services:
       retries: 3
     logging:
       <<: *logging
+    deploy:
+      mode: global
+      placement:
+        constraints: [node.labels.mode == worker ]
   ratings:
     build:
       context: ratings
@@ -126,6 +156,10 @@ services:
       retries: 3
     logging:
       <<: *logging
+    deploy:
+      mode: global
+      placement:
+        constraints: [node.labels.mode == worker ]
   payment:
     build:
       context: payment
@@ -139,6 +173,10 @@ services:
       #PAYMENT_GATEWAY: "https://www.worldpay.com"
     logging:
       <<: *logging
+    deploy:
+      mode: global
+      placement:
+        constraints: [node.labels.mode == worker ]
   dispatch:
     build:
       context: dispatch
@@ -149,6 +187,10 @@ services:
       - robo-shop
     logging:
       <<: *logging
+    deploy:
+      mode: global
+      placement:
+        constraints: [node.labels.mode == worker ]
   web:
     build:
       context: web
@@ -158,6 +200,7 @@ services:
       - user
       - shipping
       - payment
+      - mongodb
     ports:
       - "8080:8080"
     networks:
@@ -173,6 +216,11 @@ services:
       # INSTANA_EUM_REPORTING_URL: <your reporting url>
     logging:
       <<: *logging
+    deploy:
+      mode: global
+      placement:
+        constraints: [node.labels.mode == worker ]
 
 networks:
-  robo-shop: 
+  robo-shop:
+ 
