@@ -1,8 +1,8 @@
-version: 3 
+version: "3" 
 services:
   mongodb:
     build:
-      context: mongodb 
+      context: mongo 
     image: pullapantangi/ecomm_mongodb:latest
     environment:
         - HR_ENV=production-gcpus
@@ -27,7 +27,7 @@ services:
     logging:
       <<: *logging
   rabbitmq:
-    image: pullapantangi/ecomm_rabbit:latest
+    image: pullapantangi/ecomm_rmq:latest
     networks:
       - robo-shop
     logging:
@@ -120,7 +120,7 @@ services:
     depends_on:
       - mysql
     healthcheck:
-      test: curl --fail -s http://localhost:8080/health || exit 1
+      test: curl --fail -s http://localhost/_health || exit 1
       interval: 10s
       timeout: 10s
       retries: 3
@@ -163,7 +163,7 @@ services:
     networks:
       - robo-shop
     healthcheck:
-      test: curl --fail -s http://localhost:8080/health || exit 1
+      test: curl --fail -s http://localhost:8080 || exit 1
       interval: 10s
       timeout: 10s
       retries: 3
